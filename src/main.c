@@ -112,7 +112,7 @@ int main()
     for (int j = 0; j < gridBlocks.gridSize.y; j++)
     {
       bricks[i][j] = (BlockStats){
-          .health = GetRandomValue(1, 5),
+          .health = GetRandomValue(0, 5),
           .position = (vec2_t){i * gridBlocks.blockSize.x + gridBlocks.blockSize.x + (gridBlocks.spacing.x * i),
                                j * gridBlocks.blockSize.y + gridBlocks.blockSize.y + (gridBlocks.spacing.y * j)},
           .size = (vec2_t){gridBlocks.blockSize.x, gridBlocks.blockSize.y}};
@@ -219,7 +219,7 @@ int main()
           if (ball.velocity.y > 0)
           {
             ball.velocity.y *= -1;
-            ball.velocity.x = (ball.position.x - player.position.x) / (player.size.x / 2);
+            ball.velocity.x = (ball.position.x - player.position.x) / (player.size.x);
           }
         }
       }
@@ -255,7 +255,17 @@ int main()
     }
 
     BeginDrawing();
-    ClearBackground(WHITE);
+    ClearBackground(RED);
+
+    if(IsKeyDown(KEY_ENTER)){
+      isGameOver = false;
+      scoreMultiplier = 1;
+      currentScore = 0;
+      livesCounter = 5;
+      isBallSpawned = false;
+    }
+
+
     DrawText("Press Enter to Restart", screenBounds.screenSize.x / 2, screenBounds.screenSize.y / 3, 20, BLACK);
 
     DrawText("GAME OVER", screenBounds.screenSize.x / 2, screenBounds.screenSize.y / 2, 20, BLACK);
