@@ -97,7 +97,7 @@ int main()
   ball_t ball = {
       .position = player.position,
       .size = 10,
-      .maxSpeed = 300,
+      .maxSpeed = 1000,
       .velocity = {1, -1},
       .color = RED};
 
@@ -164,6 +164,7 @@ int main()
             {
               bricks[y][x].health--;
               ball.velocity.y *= -1;
+              ball.velocity.x *= -1;
               currentScore += 5 * scoreMultiplier;
               scoreMultiplier = scoreMultiplier + 1 <= 5 ? scoreMultiplier + 1 : 5;
             }
@@ -195,14 +196,18 @@ int main()
           //break;
           livesCounter--;
           isBallSpawned = false;
+          scoreMultiplier = 1;
         }
         else if(livesCounter <= 0)
         {
           isGameOver = true;
           break;
         }
-        ball.position.x += ball.velocity.x * ball.maxSpeed * delta_time;
-        ball.position.y += ball.velocity.y * ball.maxSpeed * delta_time;
+
+        ball.velocity = Vector2Scale(Vector2Normalize(ball.velocity), ball.maxSpeed * delta_time);
+        ball.position = Vector2Add(ball.position, ball.velocity);
+        //ball.position.x += ball.velocity.x * ball.maxSpeed * delta_time;
+        //ball.position.y += ball.velocity.y * ball.maxSpeed * delta_time;
 
         DrawCircle(ball.position.x, ball.position.y, ball.size, ball.color);
 
@@ -221,7 +226,7 @@ int main()
       else if(IsKeyDown(KEY_SPACE))
       {
         isBallSpawned = true;
-        ball.position = (vec2_t){player.position.x, player.position.y};
+        ball.position = (vec2_t){player.position.x + player.size.x/2, player.position.y};
         ball.velocity = (vec2_t){player.velocity.x,-1};
         livesCounter--;
       }
@@ -241,7 +246,9 @@ int main()
 
       char scoreMultiplierString[256];
       sprintf(scoreMultiplierString, "%i", scoreMultiplier);
-      DrawText(scoreMultiplierString, screenBounds.screenSize.x/2 + 80, 10, 15, GREEN);
+      char scoreMultiplierStringX[256];
+      snprintf(scoreMultiplierStringX, sizeof(scoreMultiplierStringX), "%s%s", "x", scoreMultiplierString);
+      DrawText(scoreMultiplierStringX, screenBounds.screenSize.x/2 + 80, 10, 15, GOLD);
 
 
       EndDrawing();
