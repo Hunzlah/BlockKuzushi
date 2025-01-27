@@ -10,6 +10,11 @@
 	},
 	"files.associations": {
 		"functional": "c",
-		"*.m": "c"
+		"*.m": "c",
+		"format": "c",
+		"array": "c",
+		"string_view": "c",
+		"initializer_list": "c",
+		"span": "c"
 	}
 }
