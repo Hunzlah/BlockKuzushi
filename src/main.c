@@ -255,7 +255,8 @@ void Init(GameData *gameData)
   gameData->gridBlocks = (GridBlocks){
       .blockSize = {75, 40},
       //.gridSize = {8, 4},
-      .gridSize = {2, 1+gameData->currentLevel <= 6 ? 1+gameData->currentLevel : 6},
+      .gridSize = {1 + gameData->currentLevel <= 8 ? 2 + gameData->currentLevel : 8, 
+      1 + gameData->currentLevel <= 6 ? 1+gameData->currentLevel : 6},
       .spacing = {2, 2}};
 
 
