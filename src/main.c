@@ -129,6 +129,7 @@ typedef struct
   int scoreMultiplier;
   char *maxLives;
   float delta_time;
+  int highScore;
 } GamePlayStats;
 
 typedef struct
@@ -439,21 +440,18 @@ void HandleBricks(GameData *gameData)
           gameData->gamePlayStats.currentScore += 5 * gameData->gamePlayStats.scoreMultiplier;
           gameData->gamePlayStats.scoreMultiplier = gameData->gamePlayStats.scoreMultiplier + 1 <= 5 ? gameData->gamePlayStats.scoreMultiplier + 1 : 5;
 
-          if(GetRandomValue(0,10) > 7)
-          {
-            if (!gameData->powerUpAddLife.isSpawned)
+          if (GetRandomValue(0,10) > 7 && !gameData->powerUpAddLife.isSpawned)
             {
               gameData->powerUpAddLife.position.x = gameData->bricks[y][x].position.x;
               gameData->powerUpAddLife.position.y = gameData->bricks[y][x].position.y;
               gameData->powerUpAddLife.isSpawned = true;
             }
-            else if (!gameData->powerUpIncreaseSize.isSpawned && !gameData->powerUpIncreaseSize.isActive)
+            if (GetRandomValue(0,10) > 7 && !gameData->powerUpIncreaseSize.isSpawned && !gameData->powerUpIncreaseSize.isActive)
             {
               gameData->powerUpIncreaseSize.position.x = gameData->bricks[y][x].position.x;
               gameData->powerUpIncreaseSize.position.y = gameData->bricks[y][x].position.y;
               gameData->powerUpIncreaseSize.isSpawned = true;
             }
-          }
           if(CheckPassCondition(gameData)){
             gameData->currentGameState = 3;
             break;
@@ -610,6 +608,15 @@ void RenderGamePlayScreen(GameData *gameData)
   char scoreMultiplierStringX[256];
   snprintf(scoreMultiplierStringX, sizeof(scoreMultiplierStringX), "%s%s", "x", scoreMultiplierString);
   DrawText(scoreMultiplierStringX, gameData->screenBounds.screenSize.x / 2 + 80, 10, 15, GOLD);
+
+  char highScore[256];
+  sprintf(highScore, "%i", gameData->gamePlayStats.highScore > gameData->gamePlayStats.currentScore ? 
+  gameData->gamePlayStats.highScore : gameData->gamePlayStats.currentScore);
+
+  char highScoreString[256];
+  snprintf(highScoreString, sizeof(highScoreString), "%s%s", "HighScore: ", highScore);
+  DrawText(highScoreString, gameData->screenBounds.screenSize.x / 2 + 120, 10, 20, GOLD);
+  
 }
 void HandleGamePass(GameData *gameData)
 {
