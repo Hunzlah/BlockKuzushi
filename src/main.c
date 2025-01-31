@@ -9,6 +9,12 @@ typedef Color color_t;
 
 typedef struct
 {
+  int highScore;
+  int currentLevel;
+}FileData;
+
+typedef struct
+{
   vec2_t position;
   vec2_t velocity;
   vec2_t facing;
@@ -145,6 +151,7 @@ typedef struct
   powerup_t powerUpAddLife;
   powerup_t powerUpIncreaseSize;
   GridBlocks gridBlocks;
+  FileData *fileData;
   BlockStats **bricks;
 
 } GameData;
@@ -161,13 +168,20 @@ void HandlePlayer(GameData *);
 void RenderGamePlayScreen(GameData *);
 void HandleGamePass(GameData *);
 bool CheckPassCondition(GameData *);
+void ReadFileData(FileData *);
+void WriteFileData(FileData *, int, int);
 int main()
 {
 
   //GameData *gameData = malloc(sizeof(GameData*));
+
+  //FileData *fileData;
+  //ReadFileData(fileData);
   GameData *gameData;
   gameData = malloc(sizeof *gameData);
+  gameData->fileData = malloc(sizeof(*gameData->fileData));
   SetLevel(gameData, 1);
+  //WriteFileData(gameData->fileData, 0, 1);
   Init(gameData);
   
   InitWindow(gameData->screenBounds.screenSize.x, gameData->screenBounds.screenSize.y, "Block Kuzushi");
@@ -246,6 +260,11 @@ void Init(GameData *gameData)
       .maxTime = 5,
       .currentTime = 0
   };
+
+  ReadFileData(gameData->fileData);
+
+  gameData->gamePlayStats.highScore = gameData->fileData->highScore;
+  gameData->currentLevel = gameData->fileData->currentLevel;
 
   gameData->currentGameState = 0;
   
@@ -633,12 +652,19 @@ void HandleGamePass(GameData *gameData)
   if (IsKeyDown(KEY_ENTER))
   {
 
-    int level = gameData->currentLevel+1;
+    //int level = gameData->currentLevel+1;
+
+    WriteFileData(gameData->fileData, gameData->gamePlayStats.currentScore > gameData->fileData->highScore ? 
+    gameData->gamePlayStats.currentScore : gameData->fileData->highScore, gameData->currentLevel + 1);
+
     free(gameData->bricks);
+    free(gameData->fileData);
     free(gameData);
+    
 
     gameData = malloc(sizeof *gameData);
-    SetLevel(gameData, level);
+    gameData->fileData = malloc(sizeof(*gameData->fileData));
+    //SetLevel(gameData, level);
     Init(gameData);
   }
 
@@ -665,4 +691,47 @@ bool CheckPassCondition(GameData *gameData)
     if(!isLevelPassed) break;
   }
   return isLevelPassed;
+}
+
+void ReadFileData(FileData *fileData){
+    FILE* fptr;
+    if ((fptr = fopen("./Data.bin", "rb")) == NULL) {
+        printf("Error! opening file");
+        // If file pointer will return NULL
+        // Program will exit.
+        exit(1);
+    }
+    // else it will return a pointer to the file.
+    for (int n = 1; n < 5; ++n) {
+        fread(fileData, sizeof(FileData), 1, fptr);
+        printf("n1: %d\tn2: %d", fileData->highScore, fileData->currentLevel);
+    }
+    fclose(fptr);
+}
+void WriteFileData(FileData *fileData, int highScore, int level){
+    FILE* fptr;
+    if ((fptr = fopen("./Data.bin", "wb")) == NULL) {
+        printf("Error! opening file");
+        // If file pointer will return NULL
+        // Program will exit.
+        exit(1);
+    }
+    int flag = 0;
+    // else it will return a pointer to the file.
+    for (int n = 1; n < 5; ++n) {
+        fileData->highScore = highScore;
+        fileData->currentLevel = level;
+        flag = fwrite(fileData, sizeof(FileData), 1,
+                      fptr);
+    }
+
+    // checking if the data is written
+    if (!flag) {
+        printf("Write Operation Failure");
+    }
+    else {
+        printf("Write Operation Successful");
+    }
+
+    fclose(fptr);
 }
