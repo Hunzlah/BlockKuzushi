@@ -6,7 +6,6 @@
 
 typedef Vector2 vec2_t;
 typedef Color color_t;
-
 typedef struct
 {
   int highScore;
@@ -156,6 +155,10 @@ typedef struct
 
 } GameData;
 
+Vector2 NormalizeVector2(Vector2);
+Vector2 ScaleVector2(Vector2, float);
+Vector2 AddVector2(Vector2 v1, Vector2 v2);
+
 void SetLevel(GameData *, int);
 void Init(GameData *);
 void HandleMenu(GameData *);
@@ -170,13 +173,9 @@ void HandleGamePass(GameData *);
 bool CheckPassCondition(GameData *);
 void ReadFileData(FileData *);
 void WriteFileData(FileData *, int, int);
+
 int main()
 {
-
-  //GameData *gameData = malloc(sizeof(GameData*));
-
-  //FileData *fileData;
-  //ReadFileData(fileData);
   GameData *gameData;
   gameData = malloc(sizeof *gameData);
   gameData->fileData = malloc(sizeof(*gameData->fileData));
@@ -185,7 +184,6 @@ int main()
   Init(gameData);
   
   InitWindow(gameData->screenBounds.screenSize.x, gameData->screenBounds.screenSize.y, "Block Kuzushi");
-  //InitWindow(800, 600, "Block Kuzushi");
   while (!WindowShouldClose())
   {
     switch (gameData->currentGameState)
@@ -208,6 +206,34 @@ int main()
   }
   return 0;
 }
+
+Vector2 NormalizeVector2(Vector2 v)
+{
+    Vector2 result = { 0 };
+    float length = sqrtf((v.x*v.x) + (v.y*v.y));
+
+    if (length > 0)
+    {
+        float ilength = 1.0f/length;
+        result.x = v.x*ilength;
+        result.y = v.y*ilength;
+    }
+
+    return result;
+}
+Vector2 ScaleVector2(Vector2 v, float scale)
+{
+    Vector2 result = { v.x*scale, v.y*scale };
+
+    return result;
+}
+Vector2 AddVector2(Vector2 v1, Vector2 v2)
+{
+    Vector2 result = { v1.x + v2.x, v1.y + v2.y };
+
+    return result;
+}
+
 
 void GenerateLevel(GameData *gameData)
 {
@@ -278,7 +304,7 @@ void Init(GameData *gameData)
   {
     .currentOption = 0,
     .currentScreen = 0,
-    .optionsCount = 3,
+    .optionsCount = 4,
     .selectionSize = {100, 25},
     .defaultOptionPos = {gameData->screenBounds.screenSize.x/2, gameData->screenBounds.screenSize.y/2 - 100}
   };
@@ -289,13 +315,17 @@ void Init(GameData *gameData)
       .name = "Play",
       .position = gameData->menuData.defaultOptionPos};
   gameData->menuData.menuOptions[1] = (MenuOption){
-      .name = "Credits",
+      .name = "Reset",
       .position = (vec2_t){
           gameData->menuData.defaultOptionPos.x, gameData->menuData.defaultOptionPos.y + 50}};
   gameData->menuData.menuOptions[2] = (MenuOption){
-      .name = "Exit",
+      .name = "Credits",
       .position = (vec2_t){
           gameData->menuData.defaultOptionPos.x, gameData->menuData.defaultOptionPos.y + 100}};
+  gameData->menuData.menuOptions[3] = (MenuOption){
+      .name = "Exit",
+      .position = (vec2_t){
+          gameData->menuData.defaultOptionPos.x, gameData->menuData.defaultOptionPos.y + 150}};
 
   gameData->player = (player_t){.size = {100,20},
                                 .position = {400, gameData->screenBounds.screenSize.y - playerSize.y},
@@ -306,8 +336,8 @@ void Init(GameData *gameData)
   gameData->ball = (ball_t){
       .position = gameData->player.position,
       .size = 10,
-      .collisionSize = 5,
-      .maxSpeed = 800,
+      .collisionSize = 1,
+      .maxSpeed = 1000,
       .velocity = {1, -1},
       .color = RED};
 
@@ -346,7 +376,7 @@ void HandleMenu(GameData *gameData)
   switch (gameData->menuData.currentScreen)
   {
   case 0:
-    if (IsKeyReleased(KEY_UP))
+    if (IsKeyReleased(KEY_UP) && gameData->menuData.currentOption > 0)
     {
       gameData->menuData.currentOption = (gameData->menuData.currentOption - 1) % gameData->menuData.optionsCount;
     }
@@ -359,14 +389,17 @@ void HandleMenu(GameData *gameData)
       switch (gameData->menuData.currentOption)
       {
       case 0:
-
         gameData->currentGameState = 1;
         break;
       case 1:
-        gameData->menuData.currentScreen = 1;
+        WriteFileData(gameData->fileData, 0, 1);
+        ReadFileData(gameData->fileData);
         break;
       case 2:
-
+        gameData->menuData.currentScreen = 1;
+        break;
+      case 3:
+        exit(0);
         break;
       default:
         break;
@@ -489,8 +522,8 @@ void HandlePowerUps(GameData *gameData){
       gameData->powerUpAddLife.isSpawned = false;
     }
 
-    gameData->powerUpAddLife.velocity = Vector2Scale(Vector2Normalize(gameData->powerUpAddLife.velocity), gameData->powerUpAddLife.maxSpeed * gameData->gamePlayStats.delta_time);
-    gameData->powerUpAddLife.position = Vector2Add(gameData->powerUpAddLife.position, gameData->powerUpAddLife.velocity);
+    gameData->powerUpAddLife.velocity = ScaleVector2(NormalizeVector2(gameData->powerUpAddLife.velocity), gameData->powerUpAddLife.maxSpeed * gameData->gamePlayStats.delta_time);
+    gameData->powerUpAddLife.position = AddVector2(gameData->powerUpAddLife.position, gameData->powerUpAddLife.velocity);
 
 
     if (CheckCollisionCircleRec(gameData->powerUpAddLife.position, gameData->powerUpAddLife.collisionSize,
@@ -507,8 +540,8 @@ void HandlePowerUps(GameData *gameData){
       gameData->powerUpIncreaseSize.isSpawned = false;
     }
 
-    gameData->powerUpIncreaseSize.velocity = Vector2Scale(Vector2Normalize(gameData->powerUpIncreaseSize.velocity), gameData->powerUpIncreaseSize.maxSpeed * gameData->gamePlayStats.delta_time);
-    gameData->powerUpIncreaseSize.position = Vector2Add(gameData->powerUpIncreaseSize.position, gameData->powerUpIncreaseSize.velocity);
+    gameData->powerUpIncreaseSize.velocity = ScaleVector2(NormalizeVector2(gameData->powerUpIncreaseSize.velocity), gameData->powerUpIncreaseSize.maxSpeed * gameData->gamePlayStats.delta_time);
+    gameData->powerUpIncreaseSize.position = AddVector2(gameData->powerUpIncreaseSize.position, gameData->powerUpIncreaseSize.velocity);
 
 
     if (CheckCollisionCircleRec(gameData->powerUpIncreaseSize.position, gameData->powerUpIncreaseSize.collisionSize,
@@ -552,8 +585,8 @@ void HandleBall(GameData *gameData)
       gameData->gamePlayStats.isBallSpawned = false;
     }
 
-    gameData->ball.velocity = Vector2Scale(Vector2Normalize(gameData->ball.velocity), gameData->ball.maxSpeed * gameData->gamePlayStats.delta_time);
-    gameData->ball.position = Vector2Add(gameData->ball.position, gameData->ball.velocity);
+    gameData->ball.velocity = ScaleVector2(NormalizeVector2(gameData->ball.velocity), gameData->ball.maxSpeed * gameData->gamePlayStats.delta_time);
+    gameData->ball.position = AddVector2(gameData->ball.position, gameData->ball.velocity);
 
     // Detect Collision between player and ball
 
@@ -591,8 +624,8 @@ void HandlePlayer(GameData *gameData)
     gameData->player.velocity.x = 1;
   }
 
-  gameData->player.velocity = Vector2Scale(Vector2Normalize(gameData->player.velocity), gameData->player.max_speed * gameData->gamePlayStats.delta_time);
-  gameData->player.position = Vector2Add(gameData->player.position, gameData->player.velocity);
+  gameData->player.velocity = ScaleVector2(NormalizeVector2(gameData->player.velocity), gameData->player.max_speed * gameData->gamePlayStats.delta_time);
+  gameData->player.position = AddVector2(gameData->player.position, gameData->player.velocity);
 }
 void RenderGamePlayScreen(GameData *gameData)
 {
