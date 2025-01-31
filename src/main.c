@@ -728,11 +728,13 @@ bool CheckPassCondition(GameData *gameData)
 
 void ReadFileData(FileData *fileData){
     FILE* fptr;
-    if ((fptr = fopen("./Data.bin", "rb")) == NULL) {
+    if ((fptr = fopen("./src/Data.bin", "rb")) == NULL) {
         printf("Error! opening file");
         // If file pointer will return NULL
         // Program will exit.
-        exit(1);
+        //exit(1);
+        fileData->currentLevel = 1;
+        fileData->highScore = 0;
     }
     // else it will return a pointer to the file.
     for (int n = 1; n < 5; ++n) {
@@ -743,7 +745,7 @@ void ReadFileData(FileData *fileData){
 }
 void WriteFileData(FileData *fileData, int highScore, int level){
     FILE* fptr;
-    if ((fptr = fopen("./Data.bin", "wb")) == NULL) {
+    if ((fptr = fopen("./src/Data.bin", "wb")) == NULL) {
         printf("Error! opening file");
         // If file pointer will return NULL
         // Program will exit.
