@@ -26,6 +26,19 @@ typedef struct
   float maxSpeed;
   color_t color;
 } ball_t;
+typedef struct
+{
+  vec2_t position;
+  vec2_t velocity;
+  int size;
+  int collisionSize;
+  float maxSpeed;
+  color_t color;
+  bool isSpawned;
+  bool isActive;
+  float currentTime;
+  float maxTime;
+} powerup_t;
 
 typedef struct
 {
@@ -128,6 +141,8 @@ typedef struct
   int currentLevel;
   player_t player;
   ball_t ball;
+  powerup_t powerUpAddLife;
+  powerup_t powerUpIncreaseSize;
   GridBlocks gridBlocks;
   BlockStats **bricks;
 
@@ -139,6 +154,7 @@ void HandleMenu(GameData *);
 void HandleGamePlay(GameData *);
 void HandleGameOver(GameData *);
 void HandleBricks(GameData *);
+void HandlePowerUps(GameData *);
 void HandleBall(GameData *);
 void HandlePlayer(GameData *);
 void RenderGamePlayScreen(GameData *);
@@ -207,6 +223,29 @@ void Init(GameData *gameData)
     .delta_time = 120
   };
   
+  gameData->powerUpAddLife = (powerup_t){
+    .position = gameData->player.position,
+      .size = 10,
+      .collisionSize = 5,
+      .maxSpeed = 300,
+      .velocity = {0, 1},
+      .color = GOLD,
+      .isSpawned = false
+  };
+
+  gameData->powerUpIncreaseSize = (powerup_t){
+    .position = gameData->player.position,
+      .size = 10,
+      .collisionSize = 5,
+      .maxSpeed = 300,
+      .velocity = {0, 1},
+      .color = GOLD,
+      .isSpawned = false,
+      .isActive = false,
+      .maxTime = 5,
+      .currentTime = 0
+  };
+
   gameData->currentGameState = 0;
   
   vec2_t playerSize = {100, 20};
@@ -345,7 +384,7 @@ void HandleGamePlay(GameData *gameData)
   ClearBackground(BLACK);
 
   HandleBricks(gameData);
-
+  HandlePowerUps(gameData);
   HandleBall(gameData);
   HandlePlayer(gameData);
   RenderGamePlayScreen(gameData);
@@ -399,7 +438,22 @@ void HandleBricks(GameData *gameData)
           //gameData->ball.velocity.x += GetRandomValue(-5, 5);
           gameData->gamePlayStats.currentScore += 5 * gameData->gamePlayStats.scoreMultiplier;
           gameData->gamePlayStats.scoreMultiplier = gameData->gamePlayStats.scoreMultiplier + 1 <= 5 ? gameData->gamePlayStats.scoreMultiplier + 1 : 5;
-        
+
+          if(GetRandomValue(0,10) > 7)
+          {
+            if (!gameData->powerUpAddLife.isSpawned)
+            {
+              gameData->powerUpAddLife.position.x = gameData->bricks[y][x].position.x;
+              gameData->powerUpAddLife.position.y = gameData->bricks[y][x].position.y;
+              gameData->powerUpAddLife.isSpawned = true;
+            }
+            else if (!gameData->powerUpIncreaseSize.isSpawned && !gameData->powerUpIncreaseSize.isActive)
+            {
+              gameData->powerUpIncreaseSize.position.x = gameData->bricks[y][x].position.x;
+              gameData->powerUpIncreaseSize.position.y = gameData->bricks[y][x].position.y;
+              gameData->powerUpIncreaseSize.isSpawned = true;
+            }
+          }
           if(CheckPassCondition(gameData)){
             gameData->currentGameState = 3;
             break;
@@ -409,6 +463,52 @@ void HandleBricks(GameData *gameData)
       }
     }
     if(gameData->currentGameState != 1) break;
+  }
+}
+void HandlePowerUps(GameData *gameData){
+  if(gameData->powerUpAddLife.isSpawned){
+    if (gameData->powerUpAddLife.position.y >= (gameData->screenBounds.screenSize.y - gameData->ball.collisionSize))
+    {
+      gameData->powerUpAddLife.isSpawned = false;
+    }
+
+    gameData->powerUpAddLife.velocity = Vector2Scale(Vector2Normalize(gameData->powerUpAddLife.velocity), gameData->powerUpAddLife.maxSpeed * gameData->gamePlayStats.delta_time);
+    gameData->powerUpAddLife.position = Vector2Add(gameData->powerUpAddLife.position, gameData->powerUpAddLife.velocity);
+
+
+    if (CheckCollisionCircleRec(gameData->powerUpAddLife.position, gameData->powerUpAddLife.collisionSize,
+                                (Rectangle){gameData->player.position.x, gameData->player.position.y, gameData->player.size.x, gameData->player.size.y}))
+    {
+      gameData->gamePlayStats.livesCounter = gameData->gamePlayStats.livesCounter + 1 > 5 ? 5 : gameData->gamePlayStats.livesCounter + 1;
+      gameData->powerUpAddLife.isSpawned = false;
+    }
+  }
+
+  if(gameData->powerUpIncreaseSize.isSpawned && !gameData->powerUpIncreaseSize.isActive){
+    if (gameData->powerUpIncreaseSize.position.y >= (gameData->screenBounds.screenSize.y - gameData->ball.collisionSize))
+    {
+      gameData->powerUpIncreaseSize.isSpawned = false;
+    }
+
+    gameData->powerUpIncreaseSize.velocity = Vector2Scale(Vector2Normalize(gameData->powerUpIncreaseSize.velocity), gameData->powerUpIncreaseSize.maxSpeed * gameData->gamePlayStats.delta_time);
+    gameData->powerUpIncreaseSize.position = Vector2Add(gameData->powerUpIncreaseSize.position, gameData->powerUpIncreaseSize.velocity);
+
+
+    if (CheckCollisionCircleRec(gameData->powerUpIncreaseSize.position, gameData->powerUpIncreaseSize.collisionSize,
+                                (Rectangle){gameData->player.position.x, gameData->player.position.y, gameData->player.size.x, gameData->player.size.y}))
+    {
+      gameData->gamePlayStats.livesCounter = gameData->gamePlayStats.livesCounter + 1 > 5 ? 5 : gameData->gamePlayStats.livesCounter + 1;
+      gameData->powerUpIncreaseSize.isSpawned = false;
+      gameData->powerUpIncreaseSize.isActive = true;
+      gameData->player.size.x *= 2; 
+    }
+  }
+  else if(gameData->powerUpIncreaseSize.isActive){
+    gameData->powerUpIncreaseSize.currentTime += gameData->gamePlayStats.delta_time;
+    if(gameData->powerUpIncreaseSize.currentTime >= gameData->powerUpIncreaseSize.maxTime){
+      gameData->player.size.x /= 2;
+      gameData->powerUpIncreaseSize.isActive = false;
+    }
   }
 }
 void HandleBall(GameData *gameData)
@@ -484,6 +584,13 @@ void RenderGamePlayScreen(GameData *gameData)
   DrawRectangle(gameData->player.position.x, gameData->player.position.y - gameData->screenBounds.boundsSize, gameData->player.size.x, gameData->player.size.y, gameData->player.color);
   // Draw Ball
   if(gameData->gamePlayStats.isBallSpawned) DrawCircle(gameData->ball.position.x, gameData->ball.position.y, gameData->ball.size, gameData->ball.color);
+
+  if(gameData->powerUpAddLife.isSpawned) DrawCircle(gameData->powerUpAddLife.position.x, gameData->powerUpAddLife.position.y, 
+  gameData->powerUpAddLife.size, gameData->powerUpAddLife.color);
+
+  if(gameData->powerUpIncreaseSize.isSpawned) DrawCircle(gameData->powerUpIncreaseSize.position.x, gameData->powerUpIncreaseSize.position.y, 
+  gameData->powerUpIncreaseSize.size, gameData->powerUpIncreaseSize.color);
+
   // Draw UI
   char livesCounterStr[10];
   sprintf(livesCounterStr, "%i", gameData->gamePlayStats.livesCounter);
